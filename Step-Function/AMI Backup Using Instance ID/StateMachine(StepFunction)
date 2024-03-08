@@ -1,0 +1,43 @@
+{
+  "Comment": "A workflow to create an AMI for a specific instance and check its status until it becomes available.",
+  "StartAt": "CreateAMI",
+  "States": {
+    "CreateAMI": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-south-1:XXXXXXX:function:BackupJob_AMI_StepFunction",
+      "Parameters": {
+        "instance_id": "i-XXXXXXXXXXX"
+      },
+      "ResultPath": "$.amiDetails",
+      "Next": "Wait1Minute"
+    },
+    "Wait1Minute": {
+      "Type": "Wait",
+      "Seconds": 60,
+      "Next": "CheckAMIStatus"
+    },
+    "CheckAMIStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-south-1:XXXXX:function:BackupJob_AMI_StepFunction_CheckAMI",
+      "Parameters": {
+        "ami_id.$": "$.amiDetails.ami_id"
+      },
+      "ResultPath": "$.checkResult",
+      "Next": "IsAMIAvailable"
+    },
+    "IsAMIAvailable": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.checkResult.status",
+          "StringEquals": "available",
+          "Next": "SuccessState"
+        }
+      ],
+      "Default": "Wait1Minute"
+    },
+    "SuccessState": {
+      "Type": "Succeed"
+    }
+  }
+}
